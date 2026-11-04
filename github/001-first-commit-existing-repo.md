@@ -1,4 +1,14 @@
+---
+type: howto
+tags: [github, git, remote, push]
+created: 2026-10-19
+updated: 2026-11-04
+---
+
 # Your First Commit Into a Repo That Already Has One
+
+> **TL;DR** — Fetch the remote's commit, run `git reset --soft FETCH_HEAD`, then commit and push.
+> You keep the remote's first commit, get a linear history, and never need `git push -f`.
 
 You have a folder on your laptop with working code in it. You create a new repository on the
 server's web UI, tick nothing in particular, and it hands you a page of instructions. You run
@@ -347,3 +357,7 @@ git push -u origin main                # fast-forward
 
 Three habits generalise past this particular mess: check the remote before you push to it, read
 `git status` before you commit, and remember that history stores identities as well as files.
+
+## Sources
+
+- None (from experience)

@@ -11,17 +11,21 @@
 #                                     lint changed notes → index → commit → push
 #   devnote index                     rebuild the index in README.md
 #   devnote lint [FILE...]            check notes against AGENTS.md (default: changed notes)
+#   devnote next                      print the next free note number (001, 002, …)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PATH_RE='^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*\.md$'
+# A note file: folder/slug.md, one level. Used to spot notes in `git status`.
+NOTE_RE='^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*\.md$'
+# A valid note path: the slug must start with a three-digit number.
+PATH_RE='^[a-z0-9][a-z0-9-]*/[0-9]{3}-[a-z0-9][a-z0-9-]*\.md$'
 
 die()  { printf 'devnote: %s\n' "$*" >&2; exit 1; }
 info() { printf '%s\n' "$*" >&2; }
 
-usage() { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # ---------- clipboard -------------------------------------------------------
 clip_copy() {
@@ -41,6 +45,16 @@ has_clipboard() { command -v pbcopy >/dev/null 2>&1 || command -v wl-copy >/dev/
 # ---------- repo listing ----------------------------------------------------
 note_dirs()  { find . -mindepth 1 -maxdepth 1 -type d ! -name '.*' ! -name '_*' | sed 's|^\./||' | LC_ALL=C sort; }
 note_files() { find . -mindepth 2 -maxdepth 2 -type f -name '*.md' ! -path './.*' ! -path './_*' | sed 's|^\./||' | LC_ALL=C sort; }
+
+# The next free note number: highest existing + 1, zero-padded.
+# 000 is the "not assigned yet" placeholder and never counts.
+next_num() {
+  local max
+  max=$(note_files | sed 's|.*/||' | { grep -Eo '^[0-9]{3}' || true; } \
+        | { grep -v '^000$' || true; } | sort -n | tail -n1)
+  printf '%03d\n' $(( 10#${max:-0} + 1 ))
+}
+cmd_next() { next_num; }
 
 # Title = first "# " heading outside front matter and code fences.
 title_of() {
@@ -102,11 +116,19 @@ cmd_index() {
 # ---------- lint ------------------------------------------------------------
 # Prints "ERROR …" / "WARN …" lines. Returns 1 if any ERROR.
 lint_file() {
-  local f="$1" errs=0 warned=0 type words h1
+  local f="$1" errs=0 warned=0 type words h1 num dups
   e() { printf '  ERROR %s: %s\n' "$f" "$*"; errs=1; }
   w() { printf '  WARN  %s: %s\n' "$f" "$*"; warned=1; }
 
-  printf '%s\n' "$f" | grep -Eq "$PATH_RE" || e "path must be folder/kebab-case.md (one level, lowercase)"
+  printf '%s\n' "$f" | grep -Eq "$PATH_RE" || e "path must be folder/NNN-kebab-case.md (one level, lowercase, three-digit number)"
+  case "$(basename "$f")" in
+    000-*) e "file name still has the 000 placeholder — run \`_meta/devnote.sh next\` and rename" ;;
+  esac
+  num=$(basename "$f" | grep -Eo '^[0-9]{3}' || true)
+  if [ -n "$num" ] && [ "$num" != 000 ]; then
+    dups=$(note_files | sed 's|.*/||' | grep -c "^${num}-" || true)
+    [ "$dups" -le 1 ] || e "number ${num} is used by ${dups} notes — numbers are unique repo-wide"
+  fi
   in_table "${f%%/*}" || e "folder '${f%%/*}' is not in the AGENTS.md §3 table (use an existing name or add a row)"
   [ "$(head -n1 "$f")" = "---" ] || e "missing front matter (must start with ---)"
   type=$(awk 'NR>1 && /^---/{exit} /^type:/{print $2; exit}' "$f")
@@ -161,7 +183,7 @@ lint_file() {
 in_table() { grep -q "^| \`$1\` |" AGENTS.md; }
 
 changed_notes() {
-  git status --porcelain -uall 2>/dev/null | sed 's/^...//; s/.* -> //' | { grep -E "$PATH_RE" || true; } | { grep -v '^_' || true; } | while read -r p; do
+  git status --porcelain -uall 2>/dev/null | sed 's/^...//; s/.* -> //' | { grep -E "$NOTE_RE" || true; } | { grep -v '^_' || true; } | while read -r p; do
     if [ -f "$p" ]; then echo "$p"; fi
   done
 }
@@ -225,7 +247,7 @@ cmd_publish() {
 
 # ---------- save ------------------------------------------------------------
 cmd_save() {
-  local src="" force=0 push=1 raw tmpd i path seg n ans
+  local src="" force=0 push=1 raw tmpd i path seg n ans nextn
   while [ $# -gt 0 ]; do
     case "$1" in
       --force) force=1;; --no-push) push=0;;
@@ -261,6 +283,8 @@ cmd_save() {
   [ "$n" -gt 0 ] || { rm -rf "$tmpd"; die "no '<!-- path: folder/file.md -->' line found"; }
 
   # Tidy each segment: drop trailing blank lines (and the closing ``` of a 3-backtick wrapper on the last one).
+  # A "000-" prefix means the AI could not read the repo; give it the next free number here.
+  nextn="$(next_num)"
   i=1
   while [ "$i" -le "$n" ]; do
     seg="$tmpd/$i.md"
@@ -270,8 +294,16 @@ cmd_save() {
     fi
     mv "$seg.t" "$seg"
     path="$(cat "$tmpd/$i.path")"
-    printf '%s\n' "$path" | grep -Eq "$PATH_RE" || { rm -rf "$tmpd"; die "invalid path '$path' (folder/kebab-case.md, one level)"; }
+    printf '%s\n' "$path" | grep -Eq "$PATH_RE" || { rm -rf "$tmpd"; die "invalid path '$path' (folder/NNN-kebab-case.md, one level)"; }
     case "$path" in _*) rm -rf "$tmpd"; die "notes cannot live in '_' folders";; esac
+    case "$(basename "$path")" in
+      000-*)
+        path="${path%%/*}/${nextn}-$(basename "$path" | sed 's/^000-//')"
+        printf '%s\n' "$path" > "$tmpd/$i.path"
+        info "numbered: $path"
+        nextn=$(printf '%03d' $(( 10#$nextn + 1 )))
+        ;;
+    esac
     i=$((i+1))
   done
 
@@ -335,6 +367,7 @@ case "$cmd" in
   publish) cmd_publish "$@" ;;
   index)   cmd_index ;;
   lint)    cmd_lint "$@" ;;
+  next)    cmd_next ;;
   help|-h|--help) usage ;;
   *) usage; exit 1 ;;
 esac

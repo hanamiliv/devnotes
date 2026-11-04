@@ -13,6 +13,7 @@ and the full picture in one sitting.**
 
 1. Run `_meta/devnote.sh tree` (or list the folders) to see what already exists.
 2. Choose the **type** (§2), the **folder** (§3) and the **file name** (§4).
+   Get the number for the file name with `_meta/devnote.sh next`.
 3. If a note on the same topic exists, **update it** instead of creating a new one.
 4. Copy the matching template from `_meta/templates/` and fill it in using the style rules (§5).
 5. Run the checklist (§7).
@@ -64,12 +65,17 @@ for it later.
 
 ## 4. File names
 
-- Format: `folder/topic-in-kebab-case.md`, 2–6 words, lowercase ASCII.
-- Name the **topic**, not the question: `postgres/partition-indexes.md`,
-  not `postgres/how-do-indexes-work-on-partitioned-tables.md`.
-- Do not repeat the folder name (`postgres/postgres-vacuum.md` ✗ → `postgres/vacuum.md` ✓).
-- No dates, no numbers, no `how-to-` prefix (the type lives in front matter).
-- Never rename an existing file; links may point to it.
+- Format: `folder/NNN-topic-in-kebab-case.md` — three digits, then the topic in 2–6 words,
+  lowercase ASCII.
+- The number is a repo-wide sequence: the next free number across all folders. Never reused,
+  never reset per folder. Get it with `_meta/devnote.sh next`.
+- `000` means "number not assigned yet". Use it when you cannot read the repo (an AI chat with
+  no file access). `_meta/devnote.sh save` replaces it with the real number.
+- Name the **topic**, not the question: `postgres/004-partition-indexes.md`,
+  not `postgres/004-how-do-indexes-work-on-partitioned-tables.md`.
+- Do not repeat the folder name (`postgres/004-postgres-vacuum.md` ✗ → `postgres/004-vacuum.md` ✓).
+- No dates, no `how-to-` prefix (the type lives in front matter).
+- Never change the number or the slug of an existing file; links may point to it.
 
 ---
 
@@ -103,8 +109,10 @@ Language: **English only**, even when the conversation was in another language.
 
 **Splitting a long topic**
 - Split by sub-question, not by size. Each part makes sense alone and has its own `TL;DR`.
-- Name parts by subtopic, in the same folder: `postgres/partitioning.md`,
-  `postgres/partition-indexes.md`, `postgres/partition-pruning.md`. No `part-1` numbering.
+- Name parts by subtopic, in the same folder: `postgres/007-partitioning.md`,
+  `postgres/008-partition-indexes.md`, `postgres/009-partition-pruning.md`.
+- The `NNN` prefix is a repo-wide ID, not a part number. Each part gets its own number and is
+  still named after its subtopic. Never name a part `part-1`.
 - Link the parts to each other in a `## Related` section.
 - With three or more parts, the broadest note is the overview: its `Related` section lists the
   other parts in reading order.
@@ -172,13 +180,15 @@ Delete every `<!-- … -->` guidance comment from the template.
 Sources: official documentation first, then source code, then good articles. Only link pages
 that were actually used. Never invent a URL. If there are no sources, write `- None (from experience)`.
 
-Commit message: `docs(<folder>): add <file-slug>` or `docs(<folder>): update <file-slug>`.
+Commit message: `docs(<folder>): add <NNN-file-slug>` or `docs(<folder>): update <NNN-file-slug>`.
 
 ---
 
 ## 7. Checklist before publishing
 
 - [ ] Folder is in the table in §3 (or the table was extended in this commit).
+- [ ] File name starts with the next free three-digit number (`_meta/devnote.sh next`);
+      no `000` placeholder left.
 - [ ] No existing note already covers this topic.
 - [ ] `TL;DR` answers the main question in 1–3 sentences.
 - [ ] English only; no traces of the chat.

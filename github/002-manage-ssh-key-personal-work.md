@@ -1,4 +1,15 @@
+---
+type: howto
+tags: [github, ssh, git, macos]
+created: 2026-10-19
+updated: 2026-11-04
+---
+
 # How to Manage Separate SSH Keys for Work and Personal Git Accounts
+
+> **TL;DR** — Give each account its own SSH key plus a `Host` alias in `~/.ssh/config`, then set
+> the commit email per projects folder with `includeIf "gitdir:~/personal/"`. The key decides who
+> can push; the Git config decides whose name ends up in the commit.
 
 Many developers use one laptop for both work and personal projects. If you use one SSH key and one Git identity for everything, you can end up pushing to the wrong account or committing personal code with your work email.
 
@@ -9,7 +20,7 @@ This guide shows how to keep them separate on macOS. Here is the setup we will b
 | Git host | `gitlab.com` | `github.com` |
 | SSH key | `~/.ssh/id_ed25519_work` | `~/.ssh/id_ed25519_personal` |
 | Projects folder | `~/work/` | `~/personal/` |
-| Commit email | `you@company.com` | `12345+yourname@users.noreply.github.com` |
+| Commit email | `you@company.example` | `12345+yourname@users.noreply.github.com` |
 
 There are two separate things to set up:
 
@@ -231,3 +242,7 @@ git clone git@github-work:company/service.git
 | Test connection | `ssh -T git@github.com` |
 | Check commit email | `git config user.email` |
 | Change passphrase | `ssh-keygen -p -f ~/.ssh/id_ed25519_name` |
+
+## Sources
+
+- None (from experience)

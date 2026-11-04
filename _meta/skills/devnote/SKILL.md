@@ -22,11 +22,16 @@ Talk to the user in their language. The note itself is always English.
 3. **A folder on the user's computer** you can write to but cannot run `git commit` in: write the
    file there, then tell the user to run `dn publish` (alias for `_meta/devnote.sh publish`).
 4. **No access at all**: produce the note as a downloadable `.md` file whose first line is
-   `<!-- path: folder/file.md -->`, and tell the user to run `dn save <file>`.
+   `<!-- path: folder/000-file.md -->`, and tell the user to run `dn save <file>`.
+
+File names carry a repo-wide number (`AGENTS.md` §4). With options 1–2 run
+`_meta/devnote.sh next` to get it. With options 3–4 you cannot read the repo, so write `000-`
+and let `dn save` assign the real number.
 
 ## 2. Load the rules
 
-Read all of `AGENTS.md`, then run `_meta/devnote.sh tree` (or list the folders) to see existing notes.
+Read all of `AGENTS.md`, then run `_meta/devnote.sh tree` (or list the folders) to see existing
+notes, and `_meta/devnote.sh next` for the number if you can run it.
 Open the template in `_meta/templates/` for the type you pick.
 
 ## 3. Distill

@@ -1,4 +1,3 @@
-<!-- path: ai-engineering/claude-cli-multi-account.md -->
 ---
 type: howto
 tags: [ai-engineering, claude, cli, terminal]

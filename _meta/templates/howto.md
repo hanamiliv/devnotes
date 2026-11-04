@@ -45,7 +45,7 @@ command here
 
 ## Related *(optional)*
 
-<!-- Sibling notes when a topic is split, overview first: - [Title](other-note.md) -->
+<!-- Sibling notes when a topic is split, overview first: - [Title](001-other-note.md) -->
 
 ## Sources
 
